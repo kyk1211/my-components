@@ -1,4 +1,99 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
+import styled from "@emotion/styled";
+
+type ImageProps = {
+  count: number;
+  time?: number;
+  index?: number;
+};
+
+type selected = {
+  selected: boolean;
+};
+
+const Container = styled.div({
+  width: "100%",
+  height: "480px",
+  position: "relative",
+  backgroundColor: "black",
+  // overflow: "hidden",
+});
+
+const ImageWrapper = styled.div<ImageProps>(
+  {
+    height: "100%",
+    display: "flex",
+  },
+  (props) => ({ width: `${props.count * 100}%` })
+);
+
+const CarouselImage = styled.div<ImageProps>(
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px",
+  },
+  (props) => ({
+    width: `${100 / props.count}%`,
+    transform: `translateX(${((props.index as number) + 1) * -100}%)`,
+    transition: `transform ${props.time}ms ease-out`,
+  })
+);
+
+const ArrowLeftDiv = styled.div({
+  position: "absolute",
+  borderRadius: "9999px",
+  width: "40px",
+  height: "40px",
+  backgroundColor: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  top: "50%",
+  left: "8px",
+});
+
+const ArrowRightDiv = styled.div({
+  position: "absolute",
+  borderRadius: "9999px",
+  width: "40px",
+  height: "40px",
+  backgroundColor: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  top: "50%",
+  right: "8px",
+});
+
+const IndicatorContainer = styled.div({
+  display: "flex",
+  justifyContent: "center",
+  gap: "8px",
+  position: "absolute",
+  bottom: "0%",
+  right: "0%",
+  left: "0%",
+  marginBottom: "8px",
+});
+
+const Indicator = styled.div<selected>(
+  {
+    width: "16px",
+    height: "16px",
+    borderRadius: "9999px",
+    "&:hover": {
+      backgroundColor: "#298AFF",
+    },
+    cursor: "pointer",
+  },
+  (props) => ({
+    backgroundColor: `${props.selected ? "#298AFF" : "lightgray"}`,
+  })
+);
 
 interface Props {
   children: React.ReactNode;
@@ -19,24 +114,15 @@ export default function InfiniteCarousel({
 }: Props) {
   const [slideItems] = useState(React.Children.toArray(children));
   const [time, setTime] = useState(transitionTime);
-  const [indicaterIdx, setIndicaterIdx] = useState(0);
+  const [indicatorIdx, setIndicatorIdx] = useState(0);
   const [index, setIndex] = useState(0);
   const [timer, setTimer] = useState(0);
-
-  const len = slideItems.length + 1;
-
-  const cloneSlide = (
-    slide: (React.ReactChild | React.ReactFragment | React.ReactPortal)[]
-  ) => {
-    let first = slide[0];
-    let last = slide[slide.length - 1];
-    return [last, ...slide, first];
-  };
-
   const [clone, setClone] = useState<
     (React.ReactChild | React.ReactFragment | React.ReactPortal)[]
-  >(cloneSlide(slideItems));
+  >([]);
+  const len = slideItems.length + 1;
 
+  // arrow button function
   const handleNextClick = useCallback(() => {
     setIndex((prev) => {
       if (prev >= slideItems.length) {
@@ -44,8 +130,8 @@ export default function InfiniteCarousel({
       }
       return (prev + 1) % len;
     });
-    setTime(300);
-  }, [slideItems.length, len]);
+    setTime(transitionTime);
+  }, [transitionTime, slideItems.length, len]);
 
   const handlePrevClick = useCallback(() => {
     setIndex((prev) => {
@@ -54,9 +140,24 @@ export default function InfiniteCarousel({
       }
       return (prev - 1 + len) % len;
     });
-    setTime(300);
-  }, [len]);
+    setTime(transitionTime);
+  }, [len, transitionTime]);
 
+  // infinite carousel 주요 기믹
+  const cloneSlide = (
+    slide: (React.ReactChild | React.ReactFragment | React.ReactPortal)[]
+  ) => {
+    let first = slide[0];
+    let last = slide[slide.length - 1];
+    return [last, ...slide, first];
+  };
+
+  // infinite carousel 주요 기믹
+  useEffect(() => {
+    setClone(cloneSlide(slideItems));
+  }, [slideItems]);
+
+  // infinite carousel 주요 기믹
   useEffect(() => {
     let timer1: ReturnType<typeof setTimeout>;
     if (index === slideItems.length) {
@@ -75,84 +176,81 @@ export default function InfiniteCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slideItems.length, index]);
 
+  // autoplay indicator
   useEffect(() => {
     if (index === -1) {
-      setIndicaterIdx(slideItems.length - 1);
+      setIndicatorIdx(slideItems.length - 1);
     } else if (index === slideItems.length) {
-      setIndicaterIdx(0);
+      setIndicatorIdx(0);
     } else {
-      setIndicaterIdx(index);
+      setIndicatorIdx(index);
     }
   }, [slideItems.length, index]);
 
+  // autoPlay
   useEffect(() => {
-    setClone(cloneSlide(slideItems));
-  }, [slideItems]);
-
-  useEffect(() => {
-    if (timer) {
-      clearInterval(timer);
+    if (autoPlay) {
+      if (timer) {
+        clearInterval(timer);
+      }
+      setTimer(
+        window.setInterval(() => {
+          handleNextClick();
+        }, interval)
+      );
     }
-    setTimer(
-      window.setInterval(() => {
-        handleNextClick();
-      }, 3000)
-    );
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleNextClick]);
+  }, [autoPlay, handleNextClick, interval]);
 
   return (
-    <div
-      className="w-full h-[200px] relative mt-2"
-      onMouseEnter={() => clearInterval(timer)}
-      onMouseLeave={() =>
-        setTimer(
-          window.setInterval(() => {
-            handleNextClick();
-          }, 3000)
-        )
-      }
+    <Container
+      onMouseEnter={() => {
+        if (timer) {
+          clearInterval(timer);
+        }
+      }}
+      onMouseLeave={() => {
+        if (autoPlay) {
+          setTimer(
+            window.setInterval(() => {
+              handleNextClick();
+            }, interval)
+          );
+        }
+      }}
     >
-      <div className="w-full h-full">
-        <div className="w-[calc(6*100%)] h-full flex">
-          {clone.map((color, idx) => {
-            return (
-              <div
-                className={`w-[calc(100%/6+16px)] h-full flex items-center justify-center mx-2 ${
-                  color === 1 ? `bg-red-500` : `bg-blue-500`
-                }`}
-                key={idx}
-              >
-                <span>{index}</span>
-              </div>
-            );
-          })}
-        </div>
+      <ImageWrapper count={clone.length}>
+        {clone.map((item, idx) => {
+          return (
+            <CarouselImage
+              count={clone.length}
+              index={index}
+              time={time}
+              key={idx}
+            >
+              {item}
+            </CarouselImage>
+          );
+        })}
+      </ImageWrapper>
+      <div>
+        <ArrowLeftDiv onClick={handlePrevClick}>p</ArrowLeftDiv>
+        <ArrowRightDiv onClick={handleNextClick}>n</ArrowRightDiv>
       </div>
-      <div
-        className="absolute top-[50%] left-2 rounded-full w-5 h-5 bg-white flex items-center justify-center cursor-pointer"
-        onClick={handlePrevClick}
-      >
-        p
-      </div>
-      <div
-        className="absolute top-[50%] right-2 rounded-full w-5 h-5 bg-white flex items-center justify-center cursor-pointer"
-        onClick={handleNextClick}
-      >
-        n
-      </div>
-      <div className="flex justify-center gap-2 absolute bottom-0 right-0 left-0 mb-1">
+      <IndicatorContainer>
         {slideItems.map((_, idx) => (
-          <div
-            className={`w-2 h-2 rounded-full ${
-              indicaterIdx === idx ? `bg-blue-800` : 'bg-gray-600'
-            } hover:bg-blue-800 cursor-pointer`}
+          <Indicator
             onClick={() => setIndex(idx)}
             key={idx}
-          ></div>
+            selected={indicatorIdx === idx}
+          ></Indicator>
         ))}
-      </div>
-    </div>
+      </IndicatorContainer>
+    </Container>
   );
 }
