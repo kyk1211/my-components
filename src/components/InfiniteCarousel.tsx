@@ -238,19 +238,23 @@ export default function InfiniteCarousel({
           );
         })}
       </ImageWrapper>
-      <div>
-        <ArrowLeftDiv onClick={handlePrevClick}>p</ArrowLeftDiv>
-        <ArrowRightDiv onClick={handleNextClick}>n</ArrowRightDiv>
-      </div>
-      <IndicatorContainer>
-        {slideItems.map((_, idx) => (
-          <Indicator
-            onClick={() => setIndex(idx)}
-            key={idx}
-            selected={indicatorIdx === idx}
-          ></Indicator>
-        ))}
-      </IndicatorContainer>
+      {showArrow && (
+        <div>
+          <ArrowLeftDiv onClick={handlePrevClick}>p</ArrowLeftDiv>
+          <ArrowRightDiv onClick={handleNextClick}>n</ArrowRightDiv>
+        </div>
+      )}
+      {showIndicator && (
+        <IndicatorContainer>
+          {slideItems.map((_, idx) => (
+            <Indicator
+              onClick={() => setIndex(idx)}
+              key={idx}
+              selected={indicatorIdx === idx}
+            ></Indicator>
+          ))}
+        </IndicatorContainer>
+      )}
     </Container>
   );
 }
